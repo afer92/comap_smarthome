@@ -13,7 +13,7 @@ To install `comapsmarthome-prublic-api` run :
 from comapsmarthome_public_api.client_auth import ClientAuth
 from comapsmarthome_public_api.measurement_service import MeasurementsService
 
-auth = ClientAuth()
+auth = ClientAuth(username='yourcomapuser', password='yourcomappassword')
 measurements = MeasurementsService(auth)
 
 dt_from = '2020-10-01T09:30+01:00'
@@ -26,9 +26,7 @@ temperatures = [d['inside_temperature'] for d in data]
 
 ## Credentials
 
-To access COMAP Smart Home product through the API, `username` and `password` need to be saved under the environment variables `COMAP_SMART_HOME_USERNAME` and `COMAP_SMART_HOME_PASSWORD`.
-- `COMAP_SMART_HOME_USERNAME`: COMAP Smart Home user email address
-- `COMAP_SMART_HOME_PASSWORD`: COMAP Smart Home user password
+To access COMAP Smart Home product through the API, `username` and `password` need to be gived at object creation.
 
 ## Requirements
 
