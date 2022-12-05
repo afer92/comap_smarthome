@@ -35,3 +35,7 @@ To access COMAP Smart Home product through the API, `username` and `password` ne
 - Python >=3.6
 - requests, boto3 and dateutil modules
 - COMAP Smart Home user account
+
+## Author
+Petit-Pierre Melec
+https://gitlab.com/melec/comapsmarthome_public_api_python
