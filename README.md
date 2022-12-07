@@ -6,11 +6,7 @@ Python module to control and retrieve data for COMAP Smart Home products.
 
 To install `comapsmarthome-prublic-api` run :
 
-```
-git clone https://github.com/afer92/comap_smarthome.git comapsmarthome
-cd comapsmarthome
-pip install .
-```
+    pip install comapsmarthome-public-api
 ## Usage example
 
 ```python
@@ -27,10 +23,32 @@ data = measurements.get_measurements(dt_from, dt_to, serial_number=serial_number
 dates = [d['time'] for d in data]
 temperatures = [d['inside_temperature'] for d in data]
 ```
+Other:
+```python
+from comapsmarthome_public_api.client_auth import ClientAuth
+from comapsmarthome_public_api.comap_obj import HousingsState
+
+def main():
+    auth = ClientAuth(username='yourcomapuser', password='yourcomappassword')
+    hstate = HousingsState(auth)
+    for kh, housing in hstate.housings.items():
+        print(housing)
+        for kz, zone in housing.zones.items():
+            print(zone)
+        hstate.load_thermal_details(kh)
+        for kz, zone in housing.zones.items():
+            print("\n\n{}\n".format(zone))
+            for khard, hardware in zone.hardwares.items():
+                print(hardware)
+
+
+if __name__ == "__main__":
+    main()
+```
 
 ## Credentials
 
-To access COMAP Smart Home product through the API, `username` and `password` need to be gived at object creation.
+To access COMAP Smart Home product through the API, `username` and `password` need to gived at object creation.
 
 ## Requirements
 
