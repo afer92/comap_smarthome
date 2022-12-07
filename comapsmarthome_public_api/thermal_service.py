@@ -9,6 +9,11 @@ _THERMAL_SERVICE_URL = _BASE_URL + "thermal"
 class ThermalService(ComapSmartHome):
     base_url = _THERMAL_SERVICE_URL
 
+    def get_custom_thermal_temperatures(self, housing_id):
+        """Get custom thermal temperatures used for instructions"""
+        url = "{}/housings/{}/custom-temperatures".format(self.base_url, housing_id)
+        return self.get_request(url=url, headers=self.request_header)
+
     def get_housing_thermal_details(self, housing_id):
         """Get housing thermal details"""
         url = "{}/housings/{}/thermal-details".format(self.base_url, housing_id)
