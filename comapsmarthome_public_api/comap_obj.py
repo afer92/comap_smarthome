@@ -248,6 +248,22 @@ class HousingsState:
         td = self._ts.get_housing_thermal_details(housingId)
         housing.set_thermal_details(td)
 
+    def get_hardware_by_serial(self, serial):
+        for kho, housing in self._obj_housings.items():
+            for kz, zone in housing._zones.items():
+                for kha, hardware in zone._hardwares.items():
+                    if hardware.serial_number == serial:
+                        return hardware
+        return None
+
+    def get_zone_by_id(self, id):
+        for kho, housing in self._obj_housings.items():
+            for kz, zone in housing._zones.items():
+                if zone.id == id:
+                    return zone
+        return None
+
+
     @property
     def housings(self):
         return self._obj_housings
