@@ -45,7 +45,33 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+Other:
+```python
+from comapsmarthome_public_api.client_auth import ClientAuth
+from comapsmarthome_public_api.comap_obj import HousingsState
 
+comap_username = 'yourcomapuser'
+comap_password = 'yourcomappassword'
+
+housing_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+zone_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+def main():
+    auth = ClientAuth(username=comap_username,
+                      password=comap_password)
+    hstate = HousingsState(auth)
+    hstate.load_thermal_details(housing_id)
+
+    zone = hstate.get_zone_by_id(zone_id)
+    print("\nZone: {}".format(zone.title))
+    print("=============\n")
+    line = "Consigne: {} Temperature: {} Heating: {}"
+    print(line.format(zone.seted_temp, zone.temperature, zone.heating))
+    print("Humidity: {}\n".format(zone.humidity))
+
+if __name__ == "__main__":
+    main()
+```
 ## Credentials
 
 To access COMAP Smart Home product through the API, `username` and `password` need to gived at object creation.
