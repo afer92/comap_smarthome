@@ -288,6 +288,7 @@ class Zone:
         self._humidity = None
         self._programming_type = None
         self._set_point_type = None
+        self._set_point = None
         self._next_timeslot = None
         self._heating_status = None
         self._events = None
@@ -319,6 +320,7 @@ class Zone:
         self._humidity = data['humidity']
         self._programming_type = data['programming_type']
         self._set_point_type = data['set_point_type']
+        self._set_point = data['set_point']
         self._next_timeslot = data['next_timeslot']
         self._heating_status = data['heating_status']
         self._events = data['events']
@@ -327,17 +329,18 @@ class Zone:
 
     def print_thermal_details(self):
         line1 = "  Temperature: {} Humidity: {} Last transmission: {}\n"
+        line1a = "  Seted temperature: {} Heating: {}\n"
         line2 = "  Programming type: {}, Set point type: {}\n"
         line3 = "  Heating status: {}, Next time slot: {}\n"
         line4 = "  Last presence detected: {}\n"
         part = line1.format(self._temperature, self._humidity,
                             self._transmission_error)
+        part += line1a.format(self.seted_temp, self.heating)
         part += line2.format(self._programming_type, self._set_point_type)
         part += line3.format(self._heating_status,
                              self._next_timeslot["begin_at"])
         part += "  Instruction: {}\n".format(self._next_timeslot["set_point"])
         spi = self._next_timeslot["set_point"]["instruction"]
-        # print(spi, "\n", self._housing._custom_temperatures, "\n")
         if spi in self._housing._custom_temperatures.keys():
             cust = self._housing._custom_temperatures[spi]
             part += "  Set point: {}°C".format(cust)
@@ -382,9 +385,13 @@ class Zone:
         return self._connected_objects
 
     @property
+    def set_point(self):
+        return self._set_point
+
+    @property
     def seted_temp(self):
         if self._last_transmission is not None:
-            spi = self._next_timeslot["set_point"]["instruction"]
+            spi = self._set_point["instruction"]
             if spi in self._housing._custom_temperatures.keys():
                 return self._housing._custom_temperatures[spi]
             elif spi in self._housing._custom_temperatures["connected"]:
@@ -399,3 +406,7 @@ class Zone:
     @property
     def hardwares(self):
         return self._hardwares
+
+    @property
+    def heating(self):
+        return (self._heating_status == "heating")
