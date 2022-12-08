@@ -343,10 +343,10 @@ class Zone:
         spi = self._next_timeslot["set_point"]["instruction"]
         if spi in self._housing._custom_temperatures.keys():
             cust = self._housing._custom_temperatures[spi]
-            part += "  Set point: {}°C".format(cust)
+            part += "  Next set point: {}°C".format(cust)
         elif spi in self._housing._custom_temperatures["connected"]:
             cust = self._housing._custom_temperatures["connected"][spi]
-            part += "  Set point: {}°C".format(cust)
+            part += "  Next set point: {}°C".format(cust)
         part += line4.format(self._last_presence_detected)
         if self._open_window:
             part += "  Window open"
@@ -387,6 +387,14 @@ class Zone:
     @property
     def set_point(self):
         return self._set_point
+
+    @property
+    def temperature(self):
+        return self._temperature
+
+    @property
+    def humidity(self):
+        return self._humidity
 
     @property
     def seted_temp(self):
