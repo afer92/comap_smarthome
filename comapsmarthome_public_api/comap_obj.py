@@ -5,12 +5,34 @@ from comapsmarthome_public_api.client_auth import ClientAuth
 from comapsmarthome_public_api.measurement_service import MeasurementsService
 from comapsmarthome_public_api.park_service_client import ParkServiceClient
 from comapsmarthome_public_api.thermal_service import ThermalService
+from datetime import datetime
+from dateutil.tz import *
 
-class Housing:
 
-    def __init__(self, data):
+class comap_obj:
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def strdate2date(data):
+        dtformat = '%Y-%m-%dT%H:%M:%S%z'
+        timestamp = data[:19] + data[26:].replace(":", "")
+        return datetime.strptime(timestamp, dtformat)
+
+    @staticmethod
+    def date_age(dt2compute):
+        delta = datetime.now(tzlocal()) - dt2compute
+        age = int(delta.seconds / 60)
+        return age
+
+
+class Housing(comap_obj):
+
+    def __init__(self, data, hstate):
         self._data = data
         self._id = data['id']
+        self._hstate = hstate
         self._user_id = data['user_id']
         self._name = data['name']
         self._address = data['address']
@@ -22,7 +44,7 @@ class Housing:
         self._type = data['type']
         self._usage = data['usage']
         self._ip_address = data['ip_address']
-        self._created_at = data['created_at']
+        self._created_at = self.strdate2date(data['created_at'])
         self._timezone = data['timezone']
         self._connected_objects = data['connected_objects']
         self._custom_temperatures = None
@@ -126,11 +148,11 @@ class Housing:
         return self._zones
 
     @property
-    def custom_temperatures(self):
-        return self._custom_temperatures
-        
-        
-class Hardware:
+    def last_transmission(self):
+        return self._last_transmission
+
+
+class Hardware(comap_obj):
 
     def __init__(self, zone, data):
         self._data = data
@@ -138,8 +160,8 @@ class Hardware:
         self._serial_number = data['serial_number']
         self._housing_id = data['housing_id']
         self._model = data['model']
-        self._last_communication_time = data['last_communication_time']
-        self._first_communication_time = data['first_communication_time']
+        self._last_communication_time = self.strdate2date(data['last_communication_time'])
+        self._first_communication_time = self.strdate2date(data['first_communication_time'])
         self._is_new = data['is_new']
         self._firmware_version = data['firmware_version']
         if self._model == "thermostat":
@@ -220,27 +242,35 @@ class Hardware:
         return self._is_blinking
 
 
-class HousingsState:
+class HousingsState(comap_obj):
 
     def __init__(self, auth):
+
+        def add_hardware(self, zone_obj, hardware_id):
+            hardware_infos = self._park.get_connected_object(hardware_id)
+            hard_obj = Hardware(zone_obj, hardware_infos)
+            zone_obj._hardwares[hardware_infos["serial_number"]] = zone_obj
+
+        def add_zone(housing_obj, zone_id, hstate):
+            zone_obj = Zone(housing_obj, zone_id, hstate)
+            housing_obj.add_zone(zone_obj)
+            for o_connected in zone_obj._connected_objects:
+                add_hardware(self, zone_obj, o_connected)
+
         self._auth = auth
         self._park = ParkServiceClient(auth)
         self._ts = ThermalService(auth)
         self._housings = self._park.get_housings()
         self._obj_housings = {}
-        for housing in self._housings:
-            onehousing = Housing(housing)
-            self._obj_housings[onehousing.id] = onehousing
-            zones = self._ts.get_zones(onehousing.id)
-            for zone in zones:
-                onezone = Zone(onehousing, zone)
-                onehousing.add_zone(onezone)
-                for ocobject in onezone._connected_objects:
-                    hardware_infos = self._park.get_connected_object(ocobject)
-                    hardware = Hardware(onezone, hardware_infos)
-                    onezone._hardwares[hardware_infos["serial_number"]] = hardware
+
+        for housing_data in self._housings:
+            housing_obj = Housing(housing_data, self)
+            self._obj_housings[housing_obj.id] = housing_obj
+            zones = self._ts.get_zones(housing_obj.id)
+            for zone_id in zones:
+                add_zone(housing_obj, zone_id, self)
             gct = self._ts.get_custom_temperatures
-            onehousing._custom_temperatures = gct(onehousing.id)
+            housing_obj._custom_temperatures = gct(housing_obj.id)
 
     def load_thermal_details(self, housingId):
         housing = self._obj_housings[housingId]
@@ -263,17 +293,17 @@ class HousingsState:
                     return zone
         return None
 
-
     @property
     def housings(self):
         return self._obj_housings
 
 
-class Zone:
+class Zone(comap_obj):
 
-    def __init__(self, housing, data):
+    def __init__(self, housing, data, hstate):
         self._housing = housing
         self._data = data
+        self._hstate = hstate
         self._id = data['id']
         self._title = data['title']
         self._area_type = data['area_type']
@@ -283,6 +313,7 @@ class Zone:
         self._connected_objects = data['connected_objects']
         self._open_window = None
         self._last_transmission = None
+        self._last_transmission_age = None
         self._transmission_error = None
         self._temperature = None
         self._humidity = None
@@ -312,9 +343,18 @@ class Zone:
                 part += self.print_thermal_details()
         return part
 
+    def test_thermal_details(self):
+        if self._last_transmission is None:
+            self._hstate.load_thermal_details(self._housing.id)
+        if self._last_transmission is not None:
+            self._last_transmission_age = self.date_age(self._last_transmission)
+        if self._last_transmission_age > 10:
+            self._hstate.load_thermal_details(self._housing.id)
+            self._last_transmission_age = self.date_age(self._last_transmission)
+
     def set_thermal_details(self, data):
         self._open_window = data['open_window']
-        self._last_transmission = data['last_transmission']
+        self._last_transmission = self.strdate2date(data['last_transmission'])
         self._transmission_error = data['transmission_error']
         self._temperature = data['temperature']
         self._humidity = data['humidity']
@@ -324,7 +364,7 @@ class Zone:
         self._next_timeslot = data['next_timeslot']
         self._heating_status = data['heating_status']
         self._events = data['events']
-        self._last_presence_detected = data['last_presence_detected']
+        self._last_presence_detected = self.strdate2date(data['last_presence_detected'])
         self._errors = data['errors']
 
     def print_thermal_details(self):
@@ -386,18 +426,22 @@ class Zone:
 
     @property
     def set_point(self):
+        self.test_thermal_details()
         return self._set_point
 
     @property
     def temperature(self):
+        self.test_thermal_details()
         return self._temperature
 
     @property
     def humidity(self):
+        self.test_thermal_details()
         return self._humidity
 
     @property
     def seted_temp(self):
+        self.test_thermal_details()
         if self._last_transmission is not None:
             spi = self._set_point["instruction"]
             if spi in self._housing._custom_temperatures.keys():
@@ -417,4 +461,15 @@ class Zone:
 
     @property
     def heating(self):
+        self.test_thermal_details()
         return (self._heating_status == "heating")
+
+    @property
+    def last_transmission(self):
+        self.test_thermal_details()
+        return self._last_transmission
+
+    @property
+    def last_transmission_age(self):
+        self.test_thermal_details()
+        return self._last_transmission_age
