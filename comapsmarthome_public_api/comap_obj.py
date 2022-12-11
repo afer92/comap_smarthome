@@ -249,7 +249,7 @@ class HousingsState(comap_obj):
         def add_hardware(self, zone_obj, hardware_id):
             hardware_infos = self._park.get_connected_object(hardware_id)
             hard_obj = Hardware(zone_obj, hardware_infos)
-            zone_obj._hardwares[hardware_infos["serial_number"]] = zone_obj
+            zone_obj._hardwares[hardware_infos["serial_number"]] = hard_obj
 
         def add_zone(housing_obj, zone_id, hstate):
             zone_obj = Zone(housing_obj, zone_id, hstate)
