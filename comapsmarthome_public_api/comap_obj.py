@@ -353,9 +353,12 @@ class Zone(comap_obj):
             self._last_transmission_age = self.date_age(self._last_transmission)
 
     def set_thermal_details(self, data):
-        self._open_window = data['open_window']
-        self._last_transmission = self.strdate2date(data['last_transmission'])
         self._transmission_error = data['transmission_error']
+        self._last_transmission = self.strdate2date(data['last_transmission'])
+        self._errors = data['errors']
+        if data['transmission_error']:
+            return
+        self._open_window = data['open_window']
         self._temperature = data['temperature']
         self._humidity = data['humidity']
         self._programming_type = data['programming_type']
@@ -365,7 +368,6 @@ class Zone(comap_obj):
         self._heating_status = data['heating_status']
         self._events = data['events']
         self._last_presence_detected = self.strdate2date(data['last_presence_detected'])
-        self._errors = data['errors']
 
     def print_thermal_details(self):
         line1 = "  Temperature: {} Humidity: {} Last transmission: {}\n"
@@ -478,3 +480,25 @@ class Zone(comap_obj):
     def last_transmission_age(self):
         self.test_thermal_details()
         return self._last_transmission_age
+
+    @property
+    def zone_summary(self):
+        result = ""
+        line = "\nZone: {}\n".format(self._title)
+        result += line
+        line = "=" * (len(self._title) + 6) + "\n\n"
+        result += line
+        line = "Last transmission: {} ({}mn)\n"
+        line = line.format(self._last_transmission,
+                           self._last_transmission_age)
+        result += line
+        line = "Consigne: {} Temperature: {} Heating: {}\n"
+        line = line.format(self.seted_temp,
+                           self.temperature,
+                           self.heating)
+        result += line
+        line = "Humidity: {}\n"
+        line = line.format(self.humidity)
+        result += line
+        return result
+        
