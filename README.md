@@ -5,8 +5,11 @@ Python module to control and retrieve data for COMAP Smart Home products.
 ## Install
 
 To install `comapsmarthome-prublic-api` run :
-
-    pip install comapsmarthome-public-api
+```
+get clone https://github.com/afer92/comap_smarthome.git smarthome
+cd smarthome
+pip install .
+```
 ## Usage example
 
 ```python
