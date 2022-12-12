@@ -13,7 +13,11 @@ To install `comapsmarthome-prublic-api` run :
 from comapsmarthome_public_api.client_auth import ClientAuth
 from comapsmarthome_public_api.measurement_service import MeasurementsService
 
-auth = ClientAuth(username='yourcomapuser', password='yourcomappassword')
+comap_username = 'yourcomapuser'
+comap_password = 'yourcomappassword'
+
+auth = ClientAuth(username=comap_username,
+                      password=comap_password)
 measurements = MeasurementsService(auth)
 
 dt_from = '2020-10-01T09:30+01:00'
@@ -28,8 +32,13 @@ Other:
 from comapsmarthome_public_api.client_auth import ClientAuth
 from comapsmarthome_public_api.comap_obj import HousingsState
 
+comap_username = 'yourcomapuser'
+comap_password = 'yourcomappassword'
+
+
 def main():
-    auth = ClientAuth(username='yourcomapuser', password='yourcomappassword')
+    auth = ClientAuth(username=comap_username,
+                      password=comap_password)
     hstate = HousingsState(auth)
     for kh, housing in hstate.housings.items():
         print(housing)
@@ -68,6 +77,7 @@ def main():
     line = "Consigne: {} Temperature: {} Heating: {}"
     print(line.format(zone.seted_temp, zone.temperature, zone.heating))
     print("Humidity: {}\n".format(zone.humidity))
+
 
 if __name__ == "__main__":
     main()
