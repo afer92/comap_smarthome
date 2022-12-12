@@ -444,10 +444,15 @@ class Zone(comap_obj):
         self.test_thermal_details()
         if self._last_transmission is not None:
             spi = self._set_point["instruction"]
-            if spi in self._housing._custom_temperatures.keys():
-                return self._housing._custom_temperatures[spi]
-            elif spi in self._housing._custom_temperatures["connected"]:
-                return self._housing._custom_temperatures["connected"][spi]
+            if self._set_point_type == 'defined_temperature':
+                if spi in self._housing._custom_temperatures.keys():
+                    return self._housing._custom_temperatures[spi]
+                elif spi in self._housing._custom_temperatures["connected"]:
+                    return self._housing._custom_temperatures["connected"][spi]
+            elif self._set_point_type == 'custom_temperature':
+                return spi
+            else:
+                return None
         else:
             return None
 
