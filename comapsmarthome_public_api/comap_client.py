@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from comapsmarthome_public_api.comap_obj_static import *
 import requests
 from time import sleep
 from datetime import datetime
@@ -11,6 +12,7 @@ import logging
 from threading import Lock
 import asyncio
 
+
 class ComapClient(object):
     _BASEURL = "https://api.comapsmarthome.com/"
     login_headers = {}
@@ -20,8 +22,8 @@ class ComapClient(object):
     token_expires = ""
     clientid = ""
 
-    def __init__(self,username,password,clientid="56jcvrtejpracljtirq7qnob44"):
-        self.clientid=clientid
+    def __init__(self, username, password, clientid="56jcvrtejpracljtirq7qnob44"):
+        self.clientid = clientid
         self.login_headers = {
             "Content-Type": "application/x-amz-json-1.1",
             "x-amz-target": "AWSCognitoIdentityProviderService.InitiateAuth",
@@ -36,14 +38,32 @@ class ComapClient(object):
             },
             "ClientId": clientid,
         }
+        self._housings = []
         try:
             self.login()
             housings = self.get_housings()
             self.housing = housings[0].get("id")
         except AttributeError as err:
             raise ComapClientAuthException from err
+        housings_data = self.get_housings()
+        for housing_data in housings_data:
+            self._housings.append(Housing_static(housing_data))
 
-    
+        for housing in self._housings:
+            zones_data = self.get_zones_z(housing.id)
+            for zone_data in zones_data:
+                zone = Zone_static(housing, zone_data)
+                housing.add_zone(zone)
+                for oconnected_id in zone._connected_objects:
+                    hard_data = self.get_connected_object(oconnected_id)
+                    hardware = Hardware_static(zone, hard_data)
+                    # print(hardware)
+                    zone._hardwares[hardware.serial_number] = hardware
+            htd_data = self.get_housing_thermal_details(housing.id)
+            housing.set_thermal_details(htd_data)
+            gct_data = self.get_custom_thermal_temperatures(housing.id)
+            housing._custom_temperatures = gct_data
+
     def login(self):
         try:
             url = "https://cognito-idp.eu-west-3.amazonaws.com"
@@ -56,9 +76,8 @@ class ComapClient(object):
             self.token_expires = response.get("AuthenticationResult").get("ExpiresIn")
 
         except httpx.HTTPStatusError as err:
-            _LOGGER.error('Could not set up COMAP client - %s status code. Check your credentials',err.response.status_code)
-            raise ComapClientAuthException("Client set up failed",err.response.status_code) from err
-
+            _LOGGER.error('Could not set up COMAP client - %s status code. Check your credentials', err.response.status_code)
+            raise ComapClientAuthException("Client set up failed", err.response.status_code) from err
 
     def get_request(self, url, headers=None, params={}):
         if (datetime.now() - self.last_request).total_seconds() > (
@@ -90,19 +109,19 @@ class ComapClient(object):
                 r = await client.post(url=url, headers=headers, json=json)
             elif mode == "delete":
                 r = await client.delete(url=url, headers=headers)
-            elif mode =="get":
+            elif mode == "get":
                 r = await client.get(url=url, headers=headers, params=params)
             r.raise_for_status()
-            return r.json()      
+            return r.json()
 
     async def async_post(self, url, headers=None, json={}):
-        return await self.async_request("post",url,headers,json=json)
+        return await self.async_request("post", url, headers, json=json)
 
     async def async_get(self, url, headers=None, params={}):
-        return await self.async_request("get",url,headers,params=params)
+        return await self.async_request("get", url, headers, params=params)
 
     async def async_delete(self, url, headers=None):
-        return await self.async_request("delete",url,headers)
+        return await self.async_request("delete", url, headers)
 
     def token_refresh(self):
         url = "https://cognito-idp.eu-west-3.amazonaws.com"
@@ -213,7 +232,7 @@ class ComapClient(object):
         return await self.async_get(
             self._BASEURL + "thermal/housings/" + housing + "/schedules"
         )
-    
+
     async def get_custom_temperatures(self, housing=None):
         """This returns the temperatures corresponding to instructions for different zones."""
         if housing is None:
@@ -221,7 +240,6 @@ class ComapClient(object):
         return await self.async_get(
             self._BASEURL + "thermal/housings/" + housing + "/custom-temperatures"
         )
-
 
     async def get_programs(self, housing=None):
         """This returns the active program and list of schedules for a housing."""
@@ -241,9 +259,8 @@ class ComapClient(object):
                     active_schedules = program['zones']
         except AttributeError:
             _LOGGER.error('Could not find active program for Comap housing')
-            
-        return active_schedules
 
+        return active_schedules
 
     async def set_schedule(
         self, zone, schedule_id, program_id=None, program_mode="connected", housing=None
@@ -268,7 +285,7 @@ class ComapClient(object):
             + zone,
             json=data,
         )
-    
+
     async def set_temporary_instruction(self, zone, instruction, duration=120, housing=None):
         '''Set a temporary instruction for a zone, for a given duration in minutes'''
         if housing is None:
@@ -284,15 +301,17 @@ class ComapClient(object):
                 + zone
                 + "/temporary-instruction",
                 json=data,
-            )        
+            )
             return r
         except httpx.HTTPStatusError as err:
             if err.response.status_code == 409:
-                await self.remove_temporary_instruction(zone,housing)
-                return await self.set_temporary_instruction(zone,instruction,duration=duration,housing=housing)
+                await self.remove_temporary_instruction(zone, housing)
+                return await self.set_temporary_instruction(zone,
+                                                            instruction,
+                                                            duration=duration,
+                                                            housing=housing)
             else:
                 raise err
-        
 
     async def remove_temporary_instruction(self, zone, housing=None):
         '''Set a temporary instruction for a zone, for a given duration in minutes'''
@@ -307,13 +326,19 @@ class ComapClient(object):
                 + "/thermal-control/zones/"
                 + zone
                 + "/temporary-instruction",
-            )        
+            )
             return r
         except httpx.HTTPStatusError as err:
             _LOGGER.error(err)
 
+    @property
+    def housings(self):
+        return self._housings
+
+
 class ComapClientException(Exception):
     """Exception with ComapSmartHome client."""
+
 
 class ComapClientAuthException(Exception):
     """Exception with ComapSmartHome client."""
